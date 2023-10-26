@@ -18,12 +18,6 @@ SEVEN_OCTAVED_FIFTHS_AUGMENTED[1] = SEVEN_OCTAVED_FIFTHS_AUGMENTED[1]+1
 SEVEN_OCTAVED_FIFTHS_DOUBLE_AUGMENTED = copy.copy(SEVEN_OCTAVED_FIFTHS_AUGMENTED)
 SEVEN_OCTAVED_FIFTHS_DOUBLE_AUGMENTED[2] = SEVEN_OCTAVED_FIFTHS_DOUBLE_AUGMENTED[2]+1
 
-CHOSEN_KERNEL = SEVEN_OCTAVED_FIFTHS # Picking the scale root
-SCALE_SHIFT = 1 # Rotation of 12 note circle, flattening last fifths.
-KEY_SHIFT = 0 # Picking out what will be the root note or the key.
-OCTAVE_OFFSET = 5 # Picking base octave offset
-MODE_SHIFT = 0  # Rotation of circle of N notes. Temporary change of mode of music.
-
 HARMONIC_RANGE_0 = [0]
 HARMONIC_RANGE_1 = [0, 2]
 HARMONIC_RANGE_2 = [0, 2, 4, 6]
@@ -56,24 +50,38 @@ PALLET_SEVEN = (RGB_YELLOW, RGB_GREEN, RGB_BLUE, RGB_INDIGO, RGB_PURPLE, RGB_RED
 PALLET_TWELVE = 12*[RGB_MID]
 TONES_TWELVE_KERNEL = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"]
 
+def launch(keyColors, octave_offset):
+    # Drawing Setup
+    window = Tk()
+    window.title("3D Shaded Object Part 2")
+    canvas = Canvas(window, height=WINDOW_SIZE, width=WINDOW_SIZE)
 
-SEVEN_SCALE = copy.copy(CHOSEN_KERNEL)
-for lastFifth in range(1,SCALE_SHIFT+1):
-    SEVEN_SCALE[-lastFifth] = SEVEN_SCALE[-lastFifth]-1
-SEVEN_SCALE.sort()
-TONES_KERNEL = [TONES_TWELVE_KERNEL[(index+KEY_SHIFT)%12] for index in SEVEN_SCALE]
+    # Initial Drawing
+    drawImage(canvas, N, keyColors)
+    canvas.bind('<Button-1>', pressButton, octave_offset)
 
-index_shift = ((MODE_SHIFT) * 4)%N
-keyRGBColors = PALLET_SEVEN[index_shift:] + PALLET_SEVEN[:index_shift]
-TONES_SEVEN = TONES_KERNEL[index_shift:] + TONES_KERNEL[:index_shift]
+    canvas.pack()
+    window.mainloop()
 
-if N == 12:
-    TONES = TONES_TWELVE_KERNEL
-    keyRGBColors = PALLET_TWELVE
-else:
-    TONES = TONES_SEVEN
+def getTones(scale_kernel, scale_shift, key_shift, mode_shift):
+    SEVEN_SCALE = copy.copy(scale_kernel)
+    for lastFifth in range(1,scale_shift+1):
+        SEVEN_SCALE[-lastFifth] = SEVEN_SCALE[-lastFifth]-1
+    SEVEN_SCALE.sort()
+    TONES_KERNEL = [TONES_TWELVE_KERNEL[(index+key_shift)%12] for index in SEVEN_SCALE]
 
-print(TONES)
+    index_shift = ((mode_shift) * 4)%N
+    keyRGBColors = PALLET_SEVEN[index_shift:] + PALLET_SEVEN[:index_shift]
+    TONES_SEVEN = TONES_KERNEL[index_shift:] + TONES_KERNEL[:index_shift]
+
+    if N == 12:
+        TONES = TONES_TWELVE_KERNEL
+        keyRGBColors = PALLET_TWELVE
+    else:
+        TONES = TONES_SEVEN
+
+    print(TONES)
+    return keyRGBColors
 
 # Get Color from RGB
 def RGBtoColor(rgb):
@@ -87,7 +95,7 @@ def RGBtoColor(rgb):
     return "#%02x%02x%02x"%rgb
 
 # Drawing A Single Trapezoid
-def drawTrap(r1, theta, note, N, harmonic):
+def drawTrap(canvas, r1, theta, note, N, harmonic):
     """
     Calculates the centroid of the triangle face. Used to sort farthest triangle for Painter's algorithm implementation
     Arguments:
@@ -103,7 +111,7 @@ def drawTrap(r1, theta, note, N, harmonic):
     return r1, theta
 
 # Drawing N Trapezoids
-def drawTrapezoids(r1, theta, N, harmonic):
+def drawTrapezoids(canvas, r1, theta, N, harmonic):
     """
     Calculates the centroid of the triangle face. Used to sort farthest triangle for Painter's algorithm implementation
     Arguments:
@@ -112,9 +120,9 @@ def drawTrapezoids(r1, theta, N, harmonic):
         Centroid coordinate
     """
     for note in range(N):
-        r1, theta = drawTrap(r1, theta, note, N, harmonic)
+        r1, theta = drawTrap(canvas, r1, theta, note, N, harmonic)
 
-def drawImage(N, keyColors):
+def drawImage(canvas, N, keyColors):
     """
     Draws the image in canvas, after performing several operations
     Arguments:
@@ -127,7 +135,7 @@ def drawImage(N, keyColors):
         harmonic_index = 0
         for harmonic in harmonicRange:
             rh = r * (GROWTH ** (harmonic_index/len(harmonicRange)))
-            drawTrapezoids(rh, theta, N, harmonic)
+            drawTrapezoids(canvas, rh, theta, N, harmonic)
             harmonic_index += 1
 
         for i in range(1000):
@@ -191,7 +199,7 @@ def wave2rgb(wave):
 
 
 #---------GUI Buttons-------------
-def pressButton(event):
+def pressButton(event, octave_offset):
     """
     Sets the mouse coordinates upon clicking
     Arguments:
@@ -223,7 +231,7 @@ def pressButton(event):
     else:
         harmonic_index = floor(len(harmonicRange)*log(sector_root/r)/log(2))
     harmonic = harmonicRange[harmonic_index]
-    octaveShifted = octave + OCTAVE_OFFSET + floor((index+harmonic)/N)
+    octaveShifted = octave + octave_offset + floor((index+harmonic)/N)
     letter = TONES_SEVEN[(index+harmonic)%N]
     if len(letter) >1:
         key = letter[0]+ str(octaveShifted) + letter[1]
@@ -236,16 +244,15 @@ def pressButton(event):
 
 
 if __name__ == '__main__':
+
+    scale_kernel = SEVEN_OCTAVED_FIFTHS # Picking the scale root
+    scale_shift = 1 # Rotation of 12 note circle, flattening last fifths.
+    key_shift = 0 # Picking out what will be the root note or the key.
+    octave_offset = 5 # Picking base octave offset
+    mode_shift = 0  # Rotation of circle of N notes. Temporary change of mode of music.
+
+    keyRGBColors = getTones(scale_kernel, scale_shift, key_shift, mode_shift)
     keyColors = [RGBtoColor(rgbColor) for rgbColor in keyRGBColors]
 
-    # Drawing Setup
-    window = Tk()
-    window.title("3D Shaded Object Part 2")
-    canvas = Canvas(window, height=WINDOW_SIZE, width=WINDOW_SIZE)
 
-    # Initial Drawing
-    drawImage(N, keyColors)
-    canvas.bind('<Button-1>', pressButton)
-
-    canvas.pack()
-    window.mainloop()
+    launch(keyColors, octave_offset)
