@@ -50,7 +50,7 @@ PALLET_SEVEN = (RGB_YELLOW, RGB_GREEN, RGB_BLUE, RGB_INDIGO, RGB_PURPLE, RGB_RED
 PALLET_TWELVE = 12*[RGB_MID]
 TONES_TWELVE_KERNEL = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"]
 
-def launch(keyColors, octave_offset):
+def launch(keyColors, octave_offset, tones_seven):
     # Drawing Setup
     window = Tk()
     window.title("3D Shaded Object Part 2")
@@ -58,7 +58,7 @@ def launch(keyColors, octave_offset):
 
     # Initial Drawing
     drawImage(canvas, N, keyColors)
-    canvas.bind('<Button-1>', pressButton, octave_offset)
+    canvas.bind('<Button-1>', lambda event, octave_offset=octave_offset, tones_seven=tones_seven: pressButton(event, octave_offset, tones_seven))
 
     canvas.pack()
     window.mainloop()
@@ -81,7 +81,7 @@ def getTones(scale_kernel, scale_shift, key_shift, mode_shift):
         TONES = TONES_SEVEN
 
     print(TONES)
-    return keyRGBColors
+    return (keyRGBColors, TONES_SEVEN)
 
 # Get Color from RGB
 def RGBtoColor(rgb):
@@ -199,7 +199,7 @@ def wave2rgb(wave):
 
 
 #---------GUI Buttons-------------
-def pressButton(event, octave_offset):
+def pressButton(event, octave_offset, tones_seven):
     """
     Sets the mouse coordinates upon clicking
     Arguments:
@@ -232,7 +232,7 @@ def pressButton(event, octave_offset):
         harmonic_index = floor(len(harmonicRange)*log(sector_root/r)/log(2))
     harmonic = harmonicRange[harmonic_index]
     octaveShifted = octave + octave_offset + floor((index+harmonic)/N)
-    letter = TONES_SEVEN[(index+harmonic)%N]
+    letter = tones_seven[(index+harmonic)%N]
     if len(letter) >1:
         key = letter[0]+ str(octaveShifted) + letter[1]
     else:
@@ -251,8 +251,8 @@ if __name__ == '__main__':
     octave_offset = 5 # Picking base octave offset
     mode_shift = 0  # Rotation of circle of N notes. Temporary change of mode of music.
 
-    keyRGBColors = getTones(scale_kernel, scale_shift, key_shift, mode_shift)
+    (keyRGBColors, tones_seven) = getTones(scale_kernel, scale_shift, key_shift, mode_shift)
     keyColors = [RGBtoColor(rgbColor) for rgbColor in keyRGBColors]
 
 
-    launch(keyColors, octave_offset)
+    launch(keyColors, octave_offset, tones_seven)
